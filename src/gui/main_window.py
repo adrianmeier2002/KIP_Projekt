@@ -25,8 +25,16 @@ class MainWindow(QMainWindow):
         self.elapsed_time = 0
         self.rl_agent = None
         self.training_thread = None
+        # Speed-Timer für Frame-Updates
+        self.speed_timer = QTimer()
+        self.speed_timer.timeout.connect(self._update_speed_timer)
+        self.speed_timer.start(50)  # 50ms = 20 FPS für smooth countdown
+        # ✨ NEU: Training-Lock (verhindert paralleles Training/Spielen)
+        self.is_training = False
         self._setup_ui()
         self._setup_timer()
+        # ✨ NEU: Setze Training-Lock Callback im GameBoard
+        self.game_board.is_training_callback = lambda: self.is_training
     
     def _setup_ui(self):
         """Setup the user interface."""
@@ -75,10 +83,47 @@ class MainWindow(QMainWindow):
         """)
         layout.addWidget(self.status_label)
         
+        # Speed-Timer-Anzeige
+        self.speed_timer_label = QLabel("")
+        self.speed_timer_label.setAlignment(Qt.AlignCenter)
+        self.speed_timer_label.setVisible(False)
+        self.speed_timer_label.setStyleSheet("""
+            QLabel {
+                background-color: #e74c3c;
+                color: white;
+                padding: 15px;
+                font-size: 24px;
+                font-weight: bold;
+                border-radius: 8px;
+                border: 3px solid #c0392b;
+                margin: 5px;
+            }
+        """)
+        layout.addWidget(self.speed_timer_label)
+        
+        # Tetris-Form-Anzeige
+        self.tetris_shape_label = QLabel("")
+        self.tetris_shape_label.setAlignment(Qt.AlignCenter)
+        self.tetris_shape_label.setVisible(False)
+        self.tetris_shape_label.setStyleSheet("""
+            QLabel {
+                background-color: #9b59b6;
+                color: white;
+                padding: 15px;
+                font-size: 20px;
+                font-weight: bold;
+                border-radius: 8px;
+                border: 3px solid #8e44ad;
+                margin: 5px;
+            }
+        """)
+        layout.addWidget(self.tetris_shape_label)
+        
         # Game board
         self.game_board = GameBoard(self.game)
         self.game_board.game_won.connect(self._on_game_won)
         self.game_board.game_lost.connect(self._on_game_lost)
+        self.game_board.radar_status_changed.connect(self._update_status)
         layout.addWidget(self.game_board)
         
         # RL Visualizer
@@ -102,7 +147,104 @@ class MainWindow(QMainWindow):
     def _update_status(self):
         """Update status bar."""
         remaining_mines = self.game.get_remaining_mines()
-        self.status_label.setText(f"Minen: {remaining_mines} | Zeit: {self.elapsed_time}s")
+        points = self.game.points
+        revealed = self.game.revealed_count
+        self.status_label.setText(
+            f"Minen: {remaining_mines} | Zeit: {self.elapsed_time}s | "
+            f"Aufgedeckt: {revealed} | 💰 Punkte: {points}"
+        )
+    
+    def _update_speed_timer(self):
+        """Update speed timer display and game state."""
+        if self.game.speed_active:
+            # Update timer
+            timeout = self.game.update_speed_timer(0.05)  # 50ms
+            
+            if timeout:
+                # Zeit abgelaufen - Game Over
+                self.speed_timer_label.setVisible(False)
+                self.game_board._update_display()
+                QMessageBox.critical(
+                    self,
+                    "Zeit abgelaufen!",
+                    "⏱️ Du warst zu langsam!\n\nDas Speed-Feld hat dich erwischt!"
+                )
+                return
+            
+            # Zeige verbleibende Zeit
+            time_left = self.game.speed_time_remaining
+            self.speed_timer_label.setText(f"⚡ SPEED! ⚡\n{time_left:.1f}s")
+            self.speed_timer_label.setVisible(True)
+            
+            # Pulsierender Effekt bei wenig Zeit
+            if time_left <= 2.0:
+                # Rot pulsierend
+                alpha = int(200 + 55 * ((time_left * 5) % 1))
+                self.speed_timer_label.setStyleSheet(f"""
+                    QLabel {{
+                        background-color: rgb({alpha}, 50, 50);
+                        color: white;
+                        padding: 15px;
+                        font-size: 26px;
+                        font-weight: bold;
+                        border-radius: 8px;
+                        border: 3px solid #c0392b;
+                        margin: 5px;
+                    }}
+                """)
+            else:
+                # Normal rot
+                self.speed_timer_label.setStyleSheet("""
+                    QLabel {
+                        background-color: #e74c3c;
+                        color: white;
+                        padding: 15px;
+                        font-size: 24px;
+                        font-weight: bold;
+                        border-radius: 8px;
+                        border: 3px solid #c0392b;
+                        margin: 5px;
+                    }
+                """)
+            
+            # Update board display für Animation
+            self.game_board._update_display()
+        else:
+            # Kein aktiver Speed-Timer
+            self.speed_timer_label.setVisible(False)
+        
+        # Update Tetris-Anzeige
+        if self.game.tetris_active and self.game.tetris_current_shape:
+            # Visualisiere die Form
+            shape_visual = self._get_tetris_shape_visual(self.game.tetris_current_shape)
+            self.tetris_shape_label.setText(f"🎮 TETRIS! 🎮\nPlatziere diese Form:\n{shape_visual}")
+            self.tetris_shape_label.setVisible(True)
+        else:
+            self.tetris_shape_label.setVisible(False)
+    
+    def _get_tetris_shape_visual(self, shape):
+        """Erstellt eine visuelle Darstellung der Tetris-Form."""
+        if not shape:
+            return ""
+        
+        # Finde Bounds der Form
+        min_row = min(dr for dr, dc in shape)
+        max_row = max(dr for dr, dc in shape)
+        min_col = min(dc for dr, dc in shape)
+        max_col = max(dc for dr, dc in shape)
+        
+        # Erstelle Grid
+        grid = []
+        for r in range(min_row, max_row + 1):
+            row = []
+            for c in range(min_col, max_col + 1):
+                if (r, c) in shape:
+                    row.append("■")
+                else:
+                    row.append("□")
+            grid.append(" ".join(row))
+        
+        return "\n".join(grid)
     
     def _on_game_won(self):
         """Handle game won event."""
@@ -125,6 +267,16 @@ class MainWindow(QMainWindow):
     
     def new_game(self, difficulty: str):
         """Start a new game with specified difficulty."""
+        # ✨ NEU: Blockiere während Training
+        if self.is_training:
+            QMessageBox.warning(
+                self,
+                "Training läuft",
+                "Während des Trainings können Sie kein neues Spiel starten!\n\n"
+                "Bitte warten Sie, bis das Training abgeschlossen ist."
+            )
+            return
+        
         self.game.new_game(difficulty, self.game.width, self.game.height)
         self.elapsed_time = 0
         self.timer.start()
@@ -140,6 +292,16 @@ class MainWindow(QMainWindow):
     
     def _change_board_size(self):
         """Change board size."""
+        # ✨ NEU: Blockiere während Training
+        if self.is_training:
+            QMessageBox.warning(
+                self,
+                "Training läuft",
+                "Während des Trainings können Sie die Spielfeldgröße nicht ändern!\n\n"
+                "Bitte warten Sie, bis das Training abgeschlossen ist."
+            )
+            return
+        
         from PySide6.QtWidgets import QInputDialog
         from src.utils.constants import BOARD_SIZES
         
@@ -200,6 +362,16 @@ class MainWindow(QMainWindow):
     
     def _start_rl_training(self):
         """Start RL training with visualization."""
+        # ✨ NEU: Prüfe ob Training bereits läuft
+        if self.is_training:
+            QMessageBox.warning(
+                self,
+                "Training läuft bereits",
+                "Es läuft bereits ein Training!\n\n"
+                "Bitte warten Sie, bis das aktuelle Training abgeschlossen ist."
+            )
+            return
+        
         # Simple dialog for training parameters
         from PySide6.QtWidgets import QInputDialog
         
@@ -311,9 +483,18 @@ class MainWindow(QMainWindow):
                 self.finished.emit()
         
         self.training_thread = TrainingWorker()
-        self.training_thread.finished.connect(lambda: QMessageBox.information(
-            self, "Training", "Training abgeschlossen!"
-        ))
+        
+        # ✨ NEU: Training-Status Handling
+        def on_training_finished():
+            self.is_training = False  # Unlock
+            QMessageBox.information(
+                self, "Training", "Training abgeschlossen!\n\nSie können jetzt wieder spielen."
+            )
+        
+        self.training_thread.finished.connect(on_training_finished)
+        
+        # ✨ NEU: Setze Training-Lock BEVOR Thread startet
+        self.is_training = True
         self.training_thread.start()
         
         QMessageBox.information(
@@ -323,7 +504,8 @@ class MainWindow(QMainWindow):
             f"Größe: {width}x{height}\n"
             f"Schwierigkeit: {difficulty}\n\n"
             f"Alle 100 Episoden wird eine Visualisierung angezeigt.\n"
-            f"Am Ende folgt ein finaler Test-Lauf."
+            f"Am Ende folgt ein finaler Test-Lauf.\n\n"
+            f"⚠️ HINWEIS: Während des Trainings ist das Spielen deaktiviert."
         )
     
     def _load_rl_model(self):

@@ -8,7 +8,7 @@ from src.utils.constants import (
     CELL_HIDDEN, CELL_REVEALED, CELL_FLAGGED, CELL_MINE
 )
 
-STATE_CHANNELS = 9  # Erhöht auf 9: +Frontier +Safe-Cell Kanal
+STATE_CHANNELS = 12  # Erhöht auf 12: +Frontier +Safe-Cell +Mystery +Speed +Tetris Kanäle
 NEIGHBOR_OFFSETS = [(-1, -1), (-1, 0), (-1, 1),
                     (0, -1),           (0, 1),
                     (1, -1),  (1, 0),  (1, 1)]
@@ -27,7 +27,8 @@ class MinesweeperEnvironment:
         difficulty: str = "medium",
         width: int = BOARD_WIDTH,
         height: int = BOARD_HEIGHT,
-        use_flag_actions: bool = False
+        use_flag_actions: bool = False,
+        enable_challenges: bool = True  # AKTIVIERT: Modell soll mit Features umgehen!
     ):
         """
         Initialize the environment.
@@ -36,11 +37,14 @@ class MinesweeperEnvironment:
             difficulty: Game difficulty level
             width: Board width
             height: Board height
+            use_flag_actions: Whether to use flag actions
+            enable_challenges: Whether to enable challenges (Mystery/Speed/Tetris) - Default TRUE!
         """
         self.difficulty = difficulty
         self.width = width
         self.height = height
-        self.game = Game(difficulty, width, height)
+        self.enable_challenges = enable_challenges
+        self.game = Game(difficulty, width, height, enable_challenges=enable_challenges)
         self.cell_count = width * height
         self.use_flag_actions = use_flag_actions
         self.action_space_size = (
@@ -58,7 +62,7 @@ class MinesweeperEnvironment:
         Returns:
             Initial state observation
         """
-        self.game.new_game(self.difficulty, self.width, self.height)
+        self.game.new_game(self.difficulty, self.width, self.height, enable_challenges=self.enable_challenges)
         self.first_move_done = False  # Reset first move flag
         return self._get_state()
     
@@ -72,6 +76,16 @@ class MinesweeperEnvironment:
         Returns:
             Tuple of (next_state, reward, done, info)
         """
+        # ✨ NEU: Tetris-Handling - Auto-Platzierung wenn aktiv
+        if self.game.tetris_active:
+            valid_placed = self._handle_tetris_auto_placement()
+            if valid_placed:
+                # Tetris platziert, weitermachen mit normalem Zug
+                pass
+            else:
+                # Kein gültiger Tetris-Platz → kleiner Reward-Abzug aber weitermachen
+                pass
+        
         # Convert action to row, col
         cell_index = action % self.cell_count if self.use_flag_actions and action >= self.cell_count else action
         row = cell_index // self.width
@@ -128,7 +142,7 @@ class MinesweeperEnvironment:
         """
         Get current state representation with improved features.
         
-        State channels (9 total):
+        State channels (12 total):
         0: Basis-Encoding (kombinierter Wert für schnelle Übersicht)
         1: Hidden-Maske (1.0 für verdeckte Zellen)
         2: Flag-Maske (1.0 für geflaggte Zellen)
@@ -137,7 +151,10 @@ class MinesweeperEnvironment:
         5: Geflaggte Nachbarn (0-1)
         6: Hinweis-Summe benachbarter Zellen (0-1)
         7: Frontier-Maske (1.0 wenn verdeckt UND neben aufgedeckter Zelle)
-        8: Safe-Cell-Maske (1.0 wenn mathematisch 100% sicher) ✨ KRITISCH!
+        8: Safe-Cell-Maske (1.0 wenn mathematisch 100% sicher) ✨
+        9: Mystery-Maske (1.0 wenn Mystery-Zelle) ✨ NEU!
+        10: Speed-Aktiv-Maske (1.0 überall wenn Speed-Timer läuft) ✨ NEU!
+        11: Tetris-Aktiv-Maske (1.0 überall wenn Tetris-Modus aktiv) ✨ NEU!
         
         Returns:
             State array of shape (STATE_CHANNELS, height, width)
@@ -202,6 +219,22 @@ class MinesweeperEnvironment:
         #        dann sind alle anderen verdeckten Nachbarn SICHER!
         state[8] = self._calculate_safe_cells()
         
+        # Channel 9: MYSTERY-MASKE ✨ NEU!
+        # Markiert Mystery-Zellen (Fragezeichen statt Zahl)
+        for mystery_pos in self.game.mystery_cells:
+            r, c = mystery_pos
+            state[9, r, c] = 1.0
+        
+        # Channel 10: SPEED-AKTIV-MASKE ✨ NEU!
+        # Wenn Speed-Timer läuft, markiere ALLE Zellen (globaler Zustand)
+        if self.game.speed_active:
+            state[10, :, :] = self.game.speed_time_remaining / self.game.speed_time_limit
+        
+        # Channel 11: TETRIS-AKTIV-MASKE ✨ NEU!
+        # Wenn Tetris aktiv, markiere ALLE Zellen (globaler Zustand)
+        if self.game.tetris_active:
+            state[11, :, :] = 1.0
+        
         return state
     
     def _calculate_safe_cells(self) -> np.ndarray:
@@ -215,6 +248,8 @@ class MinesweeperEnvironment:
         2. Zelle zeigt N, hat N+K Nachbarn, nur N sind verdeckt → Alle N UNSICHER
         3. Cross-Pattern: Kombinierte Constraints aus mehreren Zellen
         
+        WICHTIG: Ignoriert Mystery-Zellen (Herausforderungs-Feature)!
+        
         Returns:
             2D Array (height, width) mit 1.0 für sichere Zellen, 0.0 sonst
         """
@@ -227,6 +262,10 @@ class MinesweeperEnvironment:
                 
                 # Nur aufgedeckte Zellen mit Zahlen
                 if not cell.is_revealed() or cell.is_mine:
+                    continue
+                
+                # NEU: Mystery-Zellen ignorieren (ihre Zahl ist für Spieler versteckt!)
+                if (row, col) in self.game.mystery_cells:
                     continue
                 
                 # Sammle Nachbar-Informationen
@@ -271,6 +310,8 @@ class MinesweeperEnvironment:
         Fortgeschrittene Pattern-Erkennung für sichere Zellen.
         
         Nutzt kombinierte Constraints aus mehreren aufgedeckten Zellen.
+        
+        WICHTIG: Ignoriert Mystery-Zellen!
         """
         # Durchlaufe alle Paare von benachbarten aufgedeckten Zellen
         for row in range(self.height):
@@ -278,6 +319,10 @@ class MinesweeperEnvironment:
                 cell = self.game.board.get_cell(row, col)
                 
                 if not cell.is_revealed() or cell.is_mine or cell.adjacent_mines == 0:
+                    continue
+                
+                # NEU: Mystery-Zellen ignorieren
+                if (row, col) in self.game.mystery_cells:
                     continue
                 
                 # Prüfe alle Nachbarn dieser Zelle
@@ -288,6 +333,10 @@ class MinesweeperEnvironment:
                     
                     neighbor_cell = self.game.board.get_cell(nr, nc)
                     if not neighbor_cell.is_revealed() or neighbor_cell.is_mine or neighbor_cell.adjacent_mines == 0:
+                        continue
+                    
+                    # NEU: Mystery-Zellen auch bei Nachbarn ignorieren
+                    if (nr, nc) in self.game.mystery_cells:
                         continue
                     
                     # Jetzt haben wir zwei benachbarte aufgedeckte Zellen
@@ -364,6 +413,11 @@ class MinesweeperEnvironment:
         if self.game.is_lost():
             base_penalty = -12.0 * board_scale
             
+            # ✨ NEU: Reduzierte Strafe wenn durch Speed-Timer verloren!
+            # Speed-Timeout ist eine Spielmechanik, keine schlechte Entscheidung
+            if self.game.speed_active and self.game.speed_time_remaining <= 0:
+                return base_penalty * 0.5  # 50% Strafe
+            
             # ✨ KORREKTUR: Frontier-Moves werden weniger bestraft!
             # Ein Frontier-Move war eine informierte Entscheidung, auch wenn es zur Mine führte
             if not is_guess and frontier_neighbors > 0:
@@ -379,6 +433,12 @@ class MinesweeperEnvironment:
             # Erhöhter Win-Reward für stärkeres Signal
             # Minimum für kleine Boards, skaliert für große
             win_reward = max(50.0, 25.0 * board_scale) + 10.0 * progress_ratio
+            
+            # ✨ NEU: Bonus wenn mit aktiven Challenges gewonnen!
+            if len(self.game.mystery_cells) > 0 or len(self.game.speed_cells) > 0 or len(self.game.tetris_cells) > 0:
+                challenge_bonus = 10.0 * board_scale
+                win_reward += challenge_bonus
+            
             return win_reward
         
         # ========== NORMALE ZÜGE ==========
@@ -389,6 +449,13 @@ class MinesweeperEnvironment:
             # Bonus für Kettenreaktionen (Auto-Reveal)
             chain_bonus = 0.5 * self.progress_scale * max(0, cells_revealed - 1)
             
+            # ✨ NEU: Bonus wenn Speed-Challenge bewältigt!
+            # Wenn ein Feld während Speed-Timer aufgedeckt wurde → Belohnung
+            speed_bonus = 0.0
+            if self.game.speed_active or (prev_revealed < self.game.revealed_count and len(self.game.speed_cells) > 0):
+                # Agent hat unter Zeitdruck gehandelt - gut!
+                speed_bonus = 2.0 * self.progress_scale
+            
             # ✨✨✨ KRITISCH: SICHERE ZELLEN EXTREM BELOHNEN! ✨✨✨
             # Wenn Agent eine mathematisch sichere Zelle aufdeckt,
             # MASSIVER Bonus - das ist perfektes Minesweeper-Spiel!
@@ -396,7 +463,7 @@ class MinesweeperEnvironment:
                 # EXTREM HOHER Bonus für sichere Züge!
                 # Das ist das BESTE was der Agent tun kann
                 safe_cell_bonus = max(30.0, 15.0 * board_scale) * (1.0 + cells_revealed / 5.0)
-                return base_reward + chain_bonus + safe_cell_bonus
+                return base_reward + chain_bonus + safe_cell_bonus + speed_bonus
             
             # ✨ VERSTÄRKTER FRONTIER-BONUS V2
             # Stärkere Skalierung unabhängig von Board-Größe für klarere Signale
@@ -411,7 +478,7 @@ class MinesweeperEnvironment:
                 frontier_reward = max(10.0, 4.0 * board_scale) * (1.0 + frontier_factor)
             
             # Gesamt-Reward
-            total_reward = base_reward + chain_bonus + frontier_reward
+            total_reward = base_reward + chain_bonus + frontier_reward + speed_bonus
             return total_reward
         
         # Keine Zellen aufgedeckt -> leichte Strafe
@@ -496,6 +563,77 @@ class MinesweeperEnvironment:
         mask = np.where(valid_actions, 0.0, -np.inf)
         return mask
 
+    def _handle_tetris_auto_placement(self) -> bool:
+        """
+        INTELLIGENTE Tetris-Platzierung für RL-Training.
+        
+        Bevorzugt sichere Positionen (keine Minen) basierend auf:
+        1. Solver-Informationen (welche Zellen sind sicher)
+        2. Heuristiken (viele aufgedeckte Nachbarn = wahrscheinlich sicher)
+        
+        Returns:
+            True wenn platziert, False wenn keine gültige Position gefunden
+        """
+        if not self.game.tetris_active or not self.game.tetris_current_shape:
+            return False
+        
+        # Sammle alle gültigen Positionen mit Scores
+        from src.reinforcement_learning.constraint_solver import MinesweeperSolver
+        solver = MinesweeperSolver(self.game)
+        safe_cells = set(solver.get_safe_moves())  # 100% sichere Zellen
+        
+        position_scores = []
+        for row in range(self.height):
+            for col in range(self.width):
+                if not self.game._can_place_tetris_shape_at(self.game.tetris_current_shape, row, col):
+                    continue
+                
+                # Berechne Score für diese Position
+                score = 0
+                cells_in_shape = []
+                
+                # Prüfe alle Zellen in der Form
+                for dr, dc in self.game.tetris_current_shape:
+                    r, c = row + dr, col + dc
+                    cells_in_shape.append((r, c))
+                    
+                    # Sehr hoher Score wenn Zelle als sicher markiert ist
+                    if (r, c) in safe_cells:
+                        score += 100
+                    
+                    # Mittlerer Score für Frontier-Zellen (neben aufgedeckten)
+                    cell = self.game.board.get_cell(r, c)
+                    if cell:
+                        revealed_neighbors = sum(
+                            1 for dr2, dc2 in [(-1,-1),(-1,0),(-1,1),(0,-1),(0,1),(1,-1),(1,0),(1,1)]
+                            if 0 <= r+dr2 < self.height and 0 <= c+dc2 < self.width
+                            and self.game.board.get_cell(r+dr2, c+dc2).is_revealed()
+                        )
+                        score += revealed_neighbors * 5
+                
+                # Bonus wenn ALLE Zellen der Form sicher sind
+                if all(cell in safe_cells for cell in cells_in_shape):
+                    score += 500  # Riesiger Bonus!
+                
+                position_scores.append((score, row, col))
+        
+        if not position_scores:
+            # Keine gültige Position → Deaktiviere Tetris-Modus
+            self.game.tetris_active = False
+            self.game.tetris_current_shape = None
+            return False
+        
+        # Sortiere nach Score (höchster zuerst)
+        position_scores.sort(reverse=True, key=lambda x: x[0])
+        
+        # Nutze beste Position (oder Top 3 für etwas Randomness)
+        import random
+        top_positions = position_scores[:min(3, len(position_scores))]
+        _, row, col = random.choice(top_positions)
+        
+        success = self.game.place_tetris_shape(row, col)
+        return success
+    
     def _get_move_context(self, row: int, col: int) -> dict:
         """Collect contextual information for the selected move."""
         context = {

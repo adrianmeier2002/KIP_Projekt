@@ -35,9 +35,16 @@ class MinesweeperSolver:
         2. Cross-Constraint: Mehrere Zellen teilen Nachbarn
         3. Subtraktions-Pattern: Zelle A - Zelle B Constraints
         
+        WICHTIG: Ignoriert Mystery-Zellen (Herausforderungs-Feature)!
+        WICHTIG: Blockiert bei Tetris-aktiv Modus (Spezial-Platzierung erforderlich)!
+        
         Returns:
-            Liste von (row, col) Tupeln für sichere Zellen
+            Liste von (row, col) Tupeln für sichere Zellen (leer bei Tetris-Modus)
         """
+        # NEU: Wenn Tetris aktiv ist, darf Solver keine normalen Züge empfehlen
+        if self.game.tetris_active:
+            return []
+        
         safe_cells = set()
         mine_cells = self._find_certain_mines()
         
@@ -48,6 +55,10 @@ class MinesweeperSolver:
                 
                 # Nur aufgedeckte Zellen mit Zahlen prüfen
                 if not cell.is_revealed() or cell.is_mine:
+                    continue
+                
+                # NEU: Mystery-Zellen ignorieren (ihre Zahl ist für Spieler versteckt!)
+                if (row, col) in self.game.mystery_cells:
                     continue
                 
                 # Sammle Nachbar-Informationen
@@ -87,6 +98,8 @@ class MinesweeperSolver:
         Pattern: If cell shows N and has exactly N hidden neighbors
                 → All hidden neighbors are mines
         
+        WICHTIG: Ignoriert Mystery-Zellen (Herausforderungs-Feature)!
+        
         Returns:
             Set of (row, col) coordinates that are certain mines
         """
@@ -97,6 +110,10 @@ class MinesweeperSolver:
                 cell = self.board.get_cell(row, col)
                 
                 if not cell.is_revealed() or cell.is_mine:
+                    continue
+                
+                # NEU: Mystery-Zellen ignorieren (ihre Zahl ist für Spieler versteckt!)
+                if (row, col) in self.game.mystery_cells:
                     continue
                 
                 neighbors = self._get_neighbors(row, col)
@@ -199,7 +216,11 @@ class MinesweeperSolver:
         return safe_cells
     
     def _build_constraints(self) -> List[dict]:
-        """Build list of constraints from revealed cells."""
+        """
+        Build list of constraints from revealed cells.
+        
+        WICHTIG: Ignoriert Mystery-Zellen (Herausforderungs-Feature)!
+        """
         constraints = []
         mine_cells = self._find_certain_mines()
         
@@ -208,6 +229,10 @@ class MinesweeperSolver:
                 cell = self.board.get_cell(row, col)
                 
                 if not cell.is_revealed() or cell.is_mine:
+                    continue
+                
+                # NEU: Mystery-Zellen ignorieren (ihre Zahl ist für Spieler versteckt!)
+                if (row, col) in self.game.mystery_cells:
                     continue
                 
                 neighbors = self._get_neighbors(row, col)
@@ -259,6 +284,8 @@ class MinesweeperSolver:
         """
         OPTIMIZED: Calculate mine probability for frontier cells (simplified for speed).
         
+        WICHTIG: Ignoriert Mystery-Zellen (Herausforderungs-Feature)!
+        
         Returns:
             Dict mapping (row, col) → probability (0.0 to 1.0)
         """
@@ -270,6 +297,10 @@ class MinesweeperSolver:
                 cell = self.board.get_cell(row, col)
                 
                 if not cell.is_revealed() or cell.is_mine:
+                    continue
+                
+                # NEU: Mystery-Zellen ignorieren (ihre Zahl ist für Spieler versteckt!)
+                if (row, col) in self.game.mystery_cells:
                     continue
                 
                 neighbors = self._get_neighbors(row, col)
@@ -299,12 +330,18 @@ class MinesweeperSolver:
         2. Choose cell with LOWEST mine probability
         3. Fallback to heuristic if no frontier cells
         
+        WICHTIG: Blockiert bei Tetris-aktiv Modus!
+        
         Args:
             valid_actions: Boolean array of valid actions
             
         Returns:
             Action index or None
         """
+        # NEU: Wenn Tetris aktiv ist, keine Guesses empfehlen
+        if self.game.tetris_active:
+            return None
+        
         if not np.any(valid_actions):
             return None
         
