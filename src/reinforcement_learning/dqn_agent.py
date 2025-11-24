@@ -1,4 +1,4 @@
-"""DQN Agent for Minesweeper."""
+"""DQN Agent für Minesweeper."""
 
 import random
 import numpy as np
@@ -12,14 +12,14 @@ from src.reinforcement_learning.environment import MinesweeperEnvironment, STATE
 
 
 class ReplayBuffer:
-    """Experience replay buffer for DQN."""
+    """Replay-Buffer für Erfahrungsspeicherung (Experience Replay)."""
     
     def __init__(self, capacity: int = 10000):
         """
-        Initialize replay buffer.
+        Initialisiert den Replay-Buffer.
         
         Args:
-            capacity: Maximum number of experiences to store
+            capacity: Maximale Anzahl gespeicherter Erfahrungen
         """
         self.buffer = deque(maxlen=capacity)
     
@@ -32,11 +32,11 @@ class ReplayBuffer:
         done: bool,
         next_valid_actions: np.ndarray
     ):
-        """Add experience to buffer."""
+        """Fügt eine Erfahrung zum Buffer hinzu."""
         self.buffer.append((state, action, reward, next_state, done, next_valid_actions))
     
     def sample(self, batch_size: int) -> Tuple:
-        """Sample a batch of experiences."""
+        """Zieht eine Stichprobe von Erfahrungen."""
         batch = random.sample(self.buffer, batch_size)
         states, actions, rewards, next_states, dones, next_valid_actions = zip(*batch)
         
@@ -50,7 +50,7 @@ class ReplayBuffer:
         return states, actions, rewards, next_states, dones, next_valid_actions
     
     def __len__(self):
-        """Get buffer size."""
+        """Gibt die Buffergröße zurück."""
         return len(self.buffer)
 
 
@@ -74,22 +74,22 @@ class DQNAgent:
         device: Optional[torch.device] = None
     ):
         """
-        Initialize DQN Agent.
+        Initialisiert den DQN Agent.
         
         Args:
-            state_channels: Number of input channels
-            action_space_size: Size of action space
-            board_height: Height of the board
-            board_width: Width of the board
-            lr: Learning rate
-            gamma: Discount factor
-            epsilon_start: Initial epsilon for epsilon-greedy
-            epsilon_end: Final epsilon
-            epsilon_decay: Epsilon decay rate
-            buffer_size: Replay buffer size
-            batch_size: Batch size for training
-            target_update: Steps between target network updates
-            device: PyTorch device
+            state_channels: Anzahl der Eingabekanäle
+            action_space_size: Größe des Aktionsraums
+            board_height: Höhe des Spielfelds
+            board_width: Breite des Spielfelds
+            lr: Lernrate
+            gamma: Diskontierungsfaktor
+            epsilon_start: Initialer Epsilon-Wert für Epsilon-Greedy
+            epsilon_end: Finaler Epsilon-Wert
+            epsilon_decay: Epsilon-Abklingrate
+            buffer_size: Größe des Replay-Buffers
+            batch_size: Batch-Größe für Training
+            target_update: Schritte zwischen Target-Network-Updates
+            device: PyTorch Device
         """
         self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.action_space_size = action_space_size
@@ -105,18 +105,18 @@ class DQNAgent:
         self.target_update = target_update
         self.update_counter = 0
         
-        # Networks
+        # Netzwerke
         self.q_network = DQNNetwork(state_channels, action_space_size, board_height, board_width).to(self.device)
         self.target_network = DQNNetwork(state_channels, action_space_size, board_height, board_width).to(self.device)
         self.target_network.load_state_dict(self.q_network.state_dict())
-        self.q_network.train()  # Start in training mode
-        self.target_network.eval()  # Target network always in eval mode
+        self.q_network.train()  # Startet im Trainingsmodus
+        self.target_network.eval()  # Target-Netzwerk immer im Evaluierungsmodus
         
-        # Optimizer & loss
+        # Optimizer & Loss-Funktion
         self.optimizer = optim.Adam(self.q_network.parameters(), lr=lr)
         self.loss_fn = nn.SmoothL1Loss()
         
-        # Replay buffer
+        # Replay-Buffer
         self.memory = ReplayBuffer(buffer_size)
         self._neighbor_offsets = [(-1, -1), (-1, 0), (-1, 1),
                                   (0, -1),           (0, 1),
@@ -124,15 +124,15 @@ class DQNAgent:
     
     def select_action(self, state: np.ndarray, valid_actions: Optional[np.ndarray] = None, game=None) -> int:
         """
-        Select action using epsilon-greedy policy.
+        Wählt eine Aktion mit Epsilon-Greedy-Policy.
         
         Args:
-            state: Current state
-            valid_actions: Boolean array of valid actions
-            game: Game instance (not used in DQNAgent, for compatibility with HybridAgent)
+            state: Aktueller Zustand
+            valid_actions: Boolean-Array gültiger Aktionen
+            game: Spiel-Instanz (nicht verwendet in DQNAgent, für Kompatibilität mit HybridAgent)
             
         Returns:
-            Selected action index
+            Gewählter Aktionsindex
         """
         if random.random() < self.epsilon:
             if valid_actions is not None:
@@ -175,23 +175,23 @@ class DQNAgent:
         done: bool,
         next_valid_actions: np.ndarray
     ):
-        """Store experience in replay buffer."""
+        """Speichert eine Erfahrung im Replay-Buffer."""
         self.memory.push(state, action, reward, next_state, done, next_valid_actions)
     
     def train_step(self) -> Optional[float]:
         """
-        Perform one training step.
+        Führt einen Trainingsschritt durch.
         
         Returns:
-            Loss value if training occurred, None otherwise
+            Loss-Wert falls Training erfolgte, None sonst
         """
         if len(self.memory) < self.batch_size:
             return None
         
-        # Set network to training mode
+        # Setze Netzwerk in Trainingsmodus
         self.q_network.train()
         
-        # Sample batch
+        # Sample Batch
         states, actions, rewards, next_states, dones, next_valid_actions = self.memory.sample(self.batch_size)
         states = states.to(self.device)
         actions = actions.to(self.device)
@@ -200,11 +200,11 @@ class DQNAgent:
         dones = dones.to(self.device)
         next_valid_actions = next_valid_actions.to(self.device)
         
-        # Current Q values
+        # Aktuelle Q-Werte
         q_values = self.q_network(states)
         current_q = q_values.gather(1, actions.unsqueeze(1)).squeeze(1)
         
-        # Double DQN target calculation
+        # Double DQN Target-Berechnung
         with torch.no_grad():
             next_q_online = self.q_network(next_states)
             next_q_online = next_q_online.masked_fill(~next_valid_actions, -1e9)
@@ -214,17 +214,17 @@ class DQNAgent:
             target_q_values = next_q_target.gather(1, best_next_actions).squeeze(1)
             target_q = rewards + (1 - dones.float()) * self.gamma * target_q_values
         
-        # Compute loss
+        # Berechne Loss
         loss = self.loss_fn(current_q, target_q)
         
-        # Optimize
+        # Optimiere
         self.optimizer.zero_grad()
         loss.backward()
-        # Gradient clipping
+        # Gradient Clipping
         torch.nn.utils.clip_grad_norm_(self.q_network.parameters(), 1.0)
         self.optimizer.step()
         
-        # Update target network
+        # Update Target-Netzwerk
         self.update_counter += 1
         if self.update_counter % self.target_update == 0:
             self.target_network.load_state_dict(self.q_network.state_dict())
@@ -232,11 +232,11 @@ class DQNAgent:
         return loss.item()
     
     def decay_epsilon(self):
-        """Decay epsilon after each episode."""
+        """Verringert Epsilon nach jeder Episode."""
         self.epsilon = max(self.epsilon_end, self.epsilon * self.epsilon_decay)
     
     def _sample_frontier_action(self, state: np.ndarray, valid_actions: np.ndarray) -> Optional[int]:
-        """Sample an action near the information frontier for smarter exploration."""
+        """Sampelt eine Aktion nahe der Informationsgrenze für intelligentere Exploration."""
         if valid_actions is None or not np.any(valid_actions):
             return None
         
@@ -288,7 +288,7 @@ class DQNAgent:
         return None
     
     def save(self, filepath: str):
-        """Save model to file."""
+        """Speichert das Modell in eine Datei."""
         torch.save({
             'q_network': self.q_network.state_dict(),
             'target_network': self.target_network.state_dict(),
@@ -300,7 +300,7 @@ class DQNAgent:
         }, filepath)
     
     def load(self, filepath: str):
-        """Load model from file."""
+        """Lädt das Modell aus einer Datei."""
         checkpoint = torch.load(filepath, map_location=self.device)
         
         # Check if board size matches

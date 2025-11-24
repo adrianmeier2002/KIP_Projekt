@@ -1,4 +1,4 @@
-"""Main entry point for the Minesweeper application."""
+"""Haupteinstiegspunkt für die Minesweeper-Anwendung."""
 
 import sys
 from PySide6.QtWidgets import QApplication
@@ -6,7 +6,7 @@ from src.gui.main_window import MainWindow
 
 
 def main():
-    """Run the Minesweeper application."""
+    """Startet die Minesweeper-Anwendung."""
     app = QApplication(sys.argv)
     
     window = MainWindow()

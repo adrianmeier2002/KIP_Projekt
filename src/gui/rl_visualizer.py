@@ -1,4 +1,4 @@
-"""RL Visualizer for showing agent gameplay."""
+"""RL-Visualisierer zur Darstellung des Agent-Gameplays."""
 
 import numpy as np
 from PySide6.QtCore import QTimer, Signal
@@ -11,17 +11,17 @@ from src.utils.constants import BOARD_WIDTH, BOARD_HEIGHT
 
 
 class RLVisualizer(QWidget):
-    """Widget for visualizing RL agent gameplay."""
+    """Widget zur Visualisierung des RL-Agent-Gameplays."""
     
     episode_finished = Signal(bool, float, int)  # won, reward, steps
     
     def __init__(self, game: Game, game_board: GameBoard):
         """
-        Initialize RL visualizer.
+        Initialisiert den RL-Visualisierer.
         
         Args:
-            game: Game instance
-            game_board: GameBoard widget to update
+            game: Spiel-Instanz
+            game_board: GameBoard-Widget zur Aktualisierung
         """
         super().__init__()
         self.game = game
@@ -38,7 +38,7 @@ class RLVisualizer(QWidget):
         self._setup_ui()
     
     def _setup_ui(self):
-        """Setup UI for RL visualizer."""
+        """Richtet die Benutzeroberfläche für den RL-Visualisierer ein."""
         layout = QVBoxLayout()
         
         # Control buttons
@@ -57,7 +57,7 @@ class RLVisualizer(QWidget):
         self.setLayout(layout)
     
     def set_agent(self, agent: DQNAgent):
-        """Set the RL agent to use."""
+        """Setzt den zu verwendenden RL-Agent."""
         self.agent = agent
         if agent:
             self.agent.epsilon = 0.0  # Set to greedy mode for visualization

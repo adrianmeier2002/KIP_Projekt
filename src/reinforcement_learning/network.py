@@ -1,4 +1,4 @@
-"""Neural network for DQN."""
+"""Neuronales Netzwerk für DQN."""
 
 import torch
 import torch.nn as nn
@@ -7,24 +7,24 @@ from src.reinforcement_learning.environment import STATE_CHANNELS
 
 
 class DQNNetwork(nn.Module):
-    """Deep Q-Network for Minesweeper."""
+    """Deep Q-Network für Minesweeper."""
     
     def __init__(self, input_channels: int = STATE_CHANNELS, num_actions: int = 600, board_height: int = 20, board_width: int = 30):
         """
-        Initialize DQN network.
+        Initialisiert das DQN-Netzwerk.
         
         Args:
-            input_channels: Number of input channels (features per cell)
-            num_actions: Number of possible actions (all cells)
-            board_height: Height of the board
-            board_width: Width of the board
+            input_channels: Anzahl der Eingabekanäle (Features pro Zelle)
+            num_actions: Anzahl möglicher Aktionen (alle Zellen)
+            board_height: Höhe des Spielfelds
+            board_width: Breite des Spielfelds
         """
         super(DQNNetwork, self).__init__()
         self.num_actions = num_actions
         self.board_height = board_height
         self.board_width = board_width
         
-        # 4 Convolutional Blöcke à 128 Filter (inspiriert von sdlee94)
+        # 4 Convolutional-Blöcke à 128 Filter (inspiriert von sdlee94)
         conv_layers = []
         in_channels = input_channels
         for _ in range(4):
@@ -49,7 +49,13 @@ class DQNNetwork(nn.Module):
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
-        Forward pass durch das Netzwerk.
+        Forward-Pass durch das Netzwerk.
+        
+        Args:
+            x: Eingabe-Tensor
+            
+        Returns:
+            Q-Werte für alle Aktionen
         """
         x = self.conv_stack(x)
         x = self.adaptive_pool(x)

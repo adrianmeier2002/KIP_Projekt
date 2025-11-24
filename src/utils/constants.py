@@ -1,34 +1,34 @@
-"""Constants for the Minesweeper game."""
+"""Konstanten für das Minesweeper-Spiel."""
 
-# Default board dimensions
+# Standard-Spielfelddimensionen
 BOARD_WIDTH = 30
 BOARD_HEIGHT = 20
 
-# Predefined board sizes
+# Vordefinierte Spielfeldgrößen
 BOARD_SIZES = {
-    "small": (15, 10),      # 15x10 = 150 cells
-    "medium": (20, 15),     # 20x15 = 300 cells
-    "large": (30, 20),      # 30x20 = 600 cells (default)
-    "xlarge": (40, 25),     # 40x25 = 1000 cells
-    "custom": None          # Custom size
+    "small": (15, 10),      # 15x10 = 150 Zellen
+    "medium": (20, 15),     # 20x15 = 300 Zellen
+    "large": (30, 20),      # 30x20 = 600 Zellen (Standard)
+    "xlarge": (40, 25),     # 40x25 = 1000 Zellen
+    "custom": None          # Benutzerdefinierte Größe
 }
 
-# Difficulty levels (percentage of mines)
-DIFFICULTY_EASY = 0.10    # ~10% mines
-DIFFICULTY_MEDIUM = 0.15  # ~15% mines (standard)
-DIFFICULTY_HARD = 0.20    # ~20% mines
+# Schwierigkeitsgrade (Prozentsatz der Minen)
+DIFFICULTY_EASY = 0.10    # ~10% Minen
+DIFFICULTY_MEDIUM = 0.15  # ~15% Minen (Standard)
+DIFFICULTY_HARD = 0.20    # ~20% Minen
 
 def get_mine_count(width: int, height: int, difficulty: str) -> int:
     """
-    Calculate mine count for given board size and difficulty.
+    Berechnet die Minenanzahl für gegebene Spielfeldgröße und Schwierigkeit.
     
     Args:
-        width: Board width
-        height: Board height
-        difficulty: "easy", "medium", or "hard"
+        width: Breite des Spielfelds
+        height: Höhe des Spielfelds
+        difficulty: "easy", "medium" oder "hard"
         
     Returns:
-        Number of mines
+        Anzahl der Minen
     """
     total_cells = width * height
     difficulty_map = {
@@ -39,13 +39,13 @@ def get_mine_count(width: int, height: int, difficulty: str) -> int:
     percentage = difficulty_map.get(difficulty, DIFFICULTY_MEDIUM)
     return int(total_cells * percentage)
 
-# Legacy support (for backward compatibility)
+# Legacy-Unterstützung (für Rückwärtskompatibilität)
 TOTAL_CELLS = BOARD_WIDTH * BOARD_HEIGHT
 MINES_EASY = get_mine_count(BOARD_WIDTH, BOARD_HEIGHT, "easy")
 MINES_MEDIUM = get_mine_count(BOARD_WIDTH, BOARD_HEIGHT, "medium")
 MINES_HARD = get_mine_count(BOARD_WIDTH, BOARD_HEIGHT, "hard")
 
-# Cell states
+# Zellzustände
 CELL_HIDDEN = 0
 CELL_REVEALED = 1
 CELL_FLAGGED = 2

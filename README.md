@@ -34,67 +34,92 @@ Unsere Tests zeigten:
    ✅ Deutlich höhere Win-Rate!
 ```
 
-## 📊 Erwartete Performance
-
-### **Mit Hybrid Agent:**
-
-| Board Size | Difficulty | Expected Win-Rate | Training Time |
-|------------|------------|-------------------|---------------|
-| 5x5 | Easy | 40-70% | 500-1000 Episodes |
-| 7x7 | Medium | 20-50% | 1000-2000 Episodes |
-| 9x9 | Medium | 15-35% | 2000-3000 Episodes |
-
-**Wichtig:** Der Solver allein kann bereits ~30-60% lösen (je nach Schwierigkeit)!
-
-### **Ohne Hybrid (Pure RL):**
-
-| Board Size | Difficulty | Win-Rate | Problem |
-|------------|------------|----------|---------|
-| 5x5+ | Any | ~0% | Lernt nicht effektiv |
-
-**→ Hybr
-
-id-Modus ist STANDARD und EMPFOHLEN!**
-
----
 
 ## 🛠 Installation
 
 ### Voraussetzungen
 
-Python 3.8+ muss installiert sein.
+- **Python 3.8 oder höher** muss installiert sein
+- **Empfohlen:** Python 3.10 oder neuer für beste Kompatibilität
+- **Optional:** CUDA-fähige GPU für schnelleres Training (CPU funktioniert auch)
 
-### Projekt-Setup
+### Schritt-für-Schritt Installation
+
+#### 1. Repository klonen oder herunterladen
 
 ```bash
-# 1. Repository klonen
+# Mit Git:
 git clone https://github.com/your-repo/KIP_Projekt.git
 cd KIP_Projekt
 
-# 2. Abhängigkeiten installieren
+# Oder: ZIP-Datei herunterladen und entpacken
+```
+
+#### 2. Virtuelle Umgebung erstellen (empfohlen)
+
+```bash
+# Virtuelle Umgebung erstellen
+python -m venv venv
+
+# Aktivieren:
+# Windows:
+venv\Scripts\activate
+# Linux/Mac:
+source venv/bin/activate
+```
+
+#### 3. Abhängigkeiten installieren
+
+```bash
 pip install -r requirements.txt
 
-# Für Windows:
+# Für Windows (falls pip nicht funktioniert):
 python -m pip install -r requirements.txt
 ```
 
-**Windows:** Falls PyTorch-Fehler auftreten, installieren Sie [Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe).
+#### 4. Installation überprüfen
+
+```bash
+# Tests ausführen um sicherzustellen, dass alles funktioniert:
+pytest tests/ -v
+```
+
+**Alle 81 Tests sollten bestehen!** ✅
+
+### Mögliche Probleme und Lösungen
+
+**Problem:** PyTorch-Fehler unter Windows  
+**Lösung:** Installieren Sie [Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+
+**Problem:** Import-Fehler bei PySide6  
+**Lösung:** Neuinstallation: `pip install --upgrade --force-reinstall PySide6`
+
+**Problem:** Tests schlagen fehl  
+**Lösung:** Stellen Sie sicher, dass Sie im Projektverzeichnis sind und alle Dependencies installiert sind
 
 ---
 
 ## 🎮 Verwendung
 
-### **Option 1: GUI (Manuelles Spielen + Training)**
+### **Option 1: GUI starten (Empfohlen für Einsteiger)**
 
 ```bash
 python main.py
 ```
 
-**Features:**
-- Linksklick: Zelle aufdecken
-- Rechtsklick: Flagge setzen/entfernen
-- Menü → RL Training starten (mit Visualisierung)
-- Menü → Modell laden und testen
+Das Spiel öffnet sich in einem Fenster. Sie können:
+
+**Spielen:**
+- **Linksklick:** Zelle aufdecken
+- **Rechtsklick:** Flagge setzen/entfernen
+- **Power-Ups nutzen:** Radar (70P), Scanner (70P), Blitz (50P)
+- **Neues Spiel:** Menü → Spiel → Neues Spiel (Leicht/Mittel/Schwer)
+- **Spielfeldgröße ändern:** Menü → Spiel → Spielfeldgröße ändern
+
+**RL-Training:**
+- **Training starten:** Menü → Reinforcement Learning → Training starten
+- **Modell laden:** Menü → Reinforcement Learning → Modell laden und testen
+- Der Agent wird dann das Spiel automatisch spielen und Sie können ihm zusehen!
 
 ### **Option 2: Kommandozeile Training (Hybrid Mode - EMPFOHLEN)**
 
@@ -243,24 +268,69 @@ FC: 8192 → 512 → 512 → num_actions
 
 ## 🧪 Tests
 
+Das Projekt enthält umfassende Tests (81 Tests insgesamt):
+
 ```bash
-# Alle Tests
+# Alle Tests ausführen (empfohlen)
+pytest tests/ -v
+
+# Oder mit Python-Modul:
 python -m pytest tests/ -v
 
 # Nur RL-Tests
-python -m pytest tests/reinforcement_learning/ -v
+pytest tests/reinforcement_learning/ -v
 
-# Nur Minesweeper-Tests
-python -m pytest tests/minesweeper/ -v
+# Nur Minesweeper-Tests  
+pytest tests/minesweeper/ -v
+
+# Mit Coverage-Report
+pytest tests/ --cov=src --cov-report=html
 ```
+
+**Alle 81 Tests sollten bestehen!** Wenn nicht, überprüfen Sie Ihre Installation.
 
 ---
 
 ## 📚 Dokumentation
 
-- **[RL_IMPLEMENTATION_GUIDE.md](docs/RL_IMPLEMENTATION_GUIDE.md)**: Technische Details
-- **[RL_TRAINING_GUIDE.md](docs/RL_TRAINING_GUIDE.md)**: Training-Anleitung
-- **[CHANGELOG_RL_FIX_V3.md](CHANGELOG_RL_FIX_V3.md)**: Versionshistorie
+Zusätzliche Dokumentation finden Sie in folgenden Dateien:
+
+- **[RL_IMPLEMENTATION_GUIDE.md](docs/RL_IMPLEMENTATION_GUIDE.md)**: Technische Details zur RL-Implementierung
+- **[RL_TRAINING_GUIDE.md](docs/RL_TRAINING_GUIDE.md)**: Detaillierte Trainingsanleitung
+- **[CHANGELOG_RL_FIX_V3.md](CHANGELOG_RL_FIX_V3.md)**: Versionshistorie und Änderungen
+
+### Projekt-Struktur
+
+```
+KIP_Projekt/
+├── main.py                          # Haupteinstiegspunkt (GUI starten)
+├── requirements.txt                 # Python-Abhängigkeiten
+├── README.md                        # Diese Datei
+├── src/
+│   ├── minesweeper/                # Spiellogik
+│   │   ├── board.py                # Spielfeld-Verwaltung
+│   │   ├── cell.py                 # Zellen-Logik
+│   │   └── game.py                 # Spiel-Steuerung (inkl. Power-Ups)
+│   ├── gui/                        # Grafische Benutzeroberfläche
+│   │   ├── main_window.py          # Hauptfenster
+│   │   ├── game_board.py           # Spielfeld-Widget
+│   │   ├── menu_bar.py             # Menüleiste
+│   │   └── rl_visualizer.py        # RL-Agent Visualisierung
+│   ├── reinforcement_learning/     # KI-Komponenten
+│   │   ├── constraint_solver.py    # ✨ Regelbasierter Solver (100% sichere Züge)
+│   │   ├── hybrid_agent.py         # ✨ Hybrid-Agent (Solver + RL)
+│   │   ├── dqn_agent.py            # Deep Q-Network Agent
+│   │   ├── network.py              # Neuronales Netzwerk
+│   │   ├── environment.py          # RL-Environment Wrapper
+│   │   └── trainer.py              # Training-Skript
+│   └── utils/
+│       └── constants.py            # Konstanten und Konfiguration
+├── tests/                          # Unit-Tests (81 Tests)
+│   ├── minesweeper/                # Tests für Spiellogik
+│   └── reinforcement_learning/    # Tests für RL-Komponenten
+├── models/                         # Trainierte Modelle (wird erstellt)
+└── docs/                           # Zusätzliche Dokumentation
+```
 
 ---
 
@@ -287,67 +357,93 @@ python -m pytest tests/minesweeper/ -v
 - Domänenwissen beschleunigt Lernen massiv
 - CNNs sind schlecht in kombinatorischer Logik
 
----
 
-## 🔬 Weiterführende Experimente
+## 🛠 Technologie-Stack
 
-### **Experiment 1: Solver vs. RL Performance**
+- **Python 3.8+**: Programmiersprache
+- **PySide6 6.10+**: GUI Framework (Qt für Python)
+- **PyTorch 2.9+**: Deep Learning Framework
+- **NumPy 2.3+**: Numerische Berechnungen
+- **Pytest 9.0+**: Testing Framework
 
-```bash
-# Pure Solver (keine RL)
-# → Baseline Win-Rate messen
+## 🎮 Spiel-Features und Herausforderungen
 
-# Pure RL (--no-hybrid)
-# → Zeigt RL-Limitation
+Dieses Minesweeper-Spiel bietet zusätzliche Features und Herausforderungen, die das klassische Spiel erweitern:
 
-# Hybrid
-# → Beste Performance
-```
+### **Power-Ups (mit Punktesystem)**
 
-### **Experiment 2: Schwierigkeitsgrade**
+Durch das Aufdecken von Feldern verdienen Sie Punkte (1 Punkt pro Feld). Diese Punkte können Sie für Power-Ups ausgeben:
 
-```bash
-# Easy: 10% Minen → 50-70% Win-Rate erwartet
-# Medium: 15% Minen → 30-50% Win-Rate erwartet  
-# Hard: 20% Minen → 15-35% Win-Rate erwartet
-```
+#### **📡 Radar (70 Punkte)**
+- **Funktion:** Deckt einen 3×3-Bereich sofort auf
+- **Besonderheit:** Minen in diesem Bereich werden **nicht** ausgelöst, sondern nur mit einem Warnsymbol ⚠️ markiert
+- **Verwendung:** Klicken Sie auf den Radar-Button und dann auf die gewünschte Zelle als Zentrum
+- **Tipp:** Ideal für gefährliche Bereiche, wo Sie vermuten, dass Minen sein könnten
 
-### **Experiment 3: Brettgrößen**
+#### **🔍 Scanner (70 Punkte)**
+- **Funktion:** Zählt die Anzahl der Minen in einem 3×3-Bereich
+- **Anzeige:** Das Ergebnis (z.B. "🔍3") wird auf der gescannten Zelle angezeigt
+- **Verwendung:** Klicken Sie auf den Scanner-Button und dann auf die gewünschte Zelle als Zentrum
+- **Tipp:** Nutzen Sie dies, um zusätzliche Informationen für Ihre Strategie zu erhalten
 
-```bash
-# 5x5: Schnelles Training, höhere Win-Rate
-# 7x7: Moderates Training, mittlere Win-Rate
-# 9x9+: Langsames Training, niedrige Win-Rate
-```
+#### **⚡ Blitz (50 Punkte)**
+- **Funktion:** Deckt automatisch 1-3 sichere Felder auf
+- **Intelligenz:** Nutzt den Constraint-Solver, um nur **garantiert sichere** Felder aufzudecken
+- **Verwendung:** Einfach auf den Blitz-Button klicken
+- **Tipp:** Perfekt, wenn Sie feststecken und keine sichere Wahl sehen
 
----
+### **Herausforderungen**
 
-## 🤝 Mitwirkende
+Das Spiel fügt dynamisch Herausforderungen hinzu, um das Spielerlebnis spannender zu gestalten:
 
-Projekt entwickelt mit KI-Assistenz (Cursor + Claude Sonnet) zur Evaluation von AI-gestützter Programmierung.
+#### **❓ Mystery-Felder**
+- **Was ist das?** Aufgedeckte Zahlenfelder werden zu Fragezeichen ❓
+- **Problem:** Sie können die echte Zahl nicht sehen!
+- **Lösung:** Zahlen Sie 20 Punkte, um die Mystery-Zahl zu enthüllen
+- **Häufigkeit:** Erscheint alle 15-25 aufgedeckten Felder
+- **Strategie:** Überlegen Sie gut, ob Sie die Punkte ausgeben möchten oder ob Sie auch ohne diese Information weiterkommen
 
----
+#### **⚡ Speed-Felder**
+- **Was ist das?** Ein aufgedecktes Feld startet einen 5-Sekunden-Timer
+- **Anzeige:** Großer roter Timer oben im Fenster mit Countdown
+- **Ziel:** Decken Sie ein weiteres Feld auf, bevor die Zeit abläuft!
+- **Konsequenz:** Wenn die Zeit abläuft → **Game Over**
+- **Häufigkeit:** Erscheint alle 20-30 aufgedeckten Felder
+- **Strategie:** Halten Sie immer sichere Züge bereit für den Fall, dass ein Speed-Feld erscheint
 
-## 📄 Lizenz
+#### **🎮 Tetris-Felder**
+- **Was ist das?** Ein aufgedecktes Feld aktiviert den Tetris-Modus
+- **Anzeige:** Oben erscheint eine Tetris-Form (I, O, T, S, Z, L oder J)
+- **Ziel:** Platzieren Sie diese Form auf dem Spielfeld
+- **Regel:** Die Form muss vollständig auf verdeckte, minenfreie Felder passen
+- **Vorschau:** Beim Hover über dem Feld sehen Sie, wo die Form platziert würde
+- **Effekt:** Alle Felder der Form werden gleichzeitig aufgedeckt
+- **Häufigkeit:** Erscheint alle 25-40 aufgedeckten Felder
+- **Strategie:** Versuchen Sie, die Form in einem sicheren Bereich zu platzieren
 
-[Lizenz hier einfügen]
+### **Herausforderungen deaktivieren**
+
+Für das RL-Training können Herausforderungen optional deaktiviert werden:
+- Im Code: `Game(..., enable_challenges=False)`
+- Dies ermöglicht fokussiertes Training ohne zufällige Komplikationen
 
 ---
 
 ## 🚀 Quick Start für Ungeduldige
 
 ```bash
-# Installation
+# 1. Installation
 pip install -r requirements.txt
 
-# Training starten (Hybrid Mode, 7x7, Medium)
+# 2. Spiel starten
+python main.py
+
+# 3. Optional: Training starten (Hybrid Mode, 7x7, Medium)
 python -m src.reinforcement_learning.trainer \
   --episodes 1500 \
   --difficulty medium \
   --width 7 --height 7 \
   --save-path models/hybrid_7x7.pth
-
-# Erwartung: Win-Rate steigt auf 25-45%!
 ```
 
 **Viel Erfolg! 🎉**

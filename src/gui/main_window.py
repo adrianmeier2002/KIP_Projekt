@@ -1,4 +1,4 @@
-"""Main window for Minesweeper application."""
+"""Hauptfenster für die Minesweeper-Anwendung."""
 
 from PySide6.QtWidgets import (
     QMainWindow, QVBoxLayout, QWidget, QLabel, QMessageBox, QFileDialog
@@ -14,10 +14,10 @@ from src.reinforcement_learning.environment import MinesweeperEnvironment, STATE
 
 
 class MainWindow(QMainWindow):
-    """Main application window."""
+    """Hauptanwendungsfenster."""
     
     def __init__(self):
-        """Initialize main window."""
+        """Initialisiert das Hauptfenster."""
         super().__init__()
         # Starte mit kleinem Spielfeld (15x10) für bessere Übersicht
         self.game = Game("easy", width=15, height=10)
@@ -37,7 +37,7 @@ class MainWindow(QMainWindow):
         self.game_board.is_training_callback = lambda: self.is_training
     
     def _setup_ui(self):
-        """Setup the user interface."""
+        """Richtet die Benutzeroberfläche ein."""
         self.setWindowTitle("Minesweeper mit Hybrid AI - Leicht (15x10)")
         self.setMinimumSize(800, 600)
         
@@ -134,18 +134,18 @@ class MainWindow(QMainWindow):
         self._update_status()
     
     def _setup_timer(self):
-        """Setup game timer."""
+        """Richtet den Spiel-Timer ein."""
         self.timer.timeout.connect(self._update_timer)
         self.timer.start(1000)  # Update every second
     
     def _update_timer(self):
-        """Update timer display."""
+        """Aktualisiert die Timer-Anzeige."""
         if not self.game.is_game_over():
             self.elapsed_time += 1
             self._update_status()
     
     def _update_status(self):
-        """Update status bar."""
+        """Aktualisiert die Statusleiste."""
         remaining_mines = self.game.get_remaining_mines()
         points = self.game.points
         revealed = self.game.revealed_count
@@ -155,7 +155,7 @@ class MainWindow(QMainWindow):
         )
     
     def _update_speed_timer(self):
-        """Update speed timer display and game state."""
+        """Aktualisiert die Speed-Timer-Anzeige und den Spielzustand."""
         if self.game.speed_active:
             # Update timer
             timeout = self.game.update_speed_timer(0.05)  # 50ms
@@ -247,7 +247,7 @@ class MainWindow(QMainWindow):
         return "\n".join(grid)
     
     def _on_game_won(self):
-        """Handle game won event."""
+        """Behandelt das Spielgewonnen-Ereignis."""
         self.timer.stop()
         QMessageBox.information(
             self,
@@ -256,7 +256,7 @@ class MainWindow(QMainWindow):
         )
     
     def _on_game_lost(self):
-        """Handle game lost event."""
+        """Behandelt das Spielverloren-Ereignis."""
         self.timer.stop()
         QMessageBox.information(
             self,
@@ -266,7 +266,7 @@ class MainWindow(QMainWindow):
         self.game_board._update_display()  # Show all mines
     
     def new_game(self, difficulty: str):
-        """Start a new game with specified difficulty."""
+        """Startet ein neues Spiel mit angegebener Schwierigkeit."""
         # ✨ NEU: Blockiere während Training
         if self.is_training:
             QMessageBox.warning(
@@ -291,7 +291,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(f"Minesweeper mit RL - {difficulty_names.get(difficulty, 'Mittel')} ({self.game.width}x{self.game.height})")
     
     def _change_board_size(self):
-        """Change board size."""
+        """Ändert die Spielfeldgröße."""
         # ✨ NEU: Blockiere während Training
         if self.is_training:
             QMessageBox.warning(
@@ -361,7 +361,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(f"Minesweeper mit RL - {self.game.difficulty.title()} ({width}x{height})")
     
     def _start_rl_training(self):
-        """Start RL training with visualization."""
+        """Startet RL-Training mit Visualisierung."""
         # ✨ NEU: Prüfe ob Training bereits läuft
         if self.is_training:
             QMessageBox.warning(
@@ -509,7 +509,7 @@ class MainWindow(QMainWindow):
         )
     
     def _load_rl_model(self):
-        """Load RL model and test it."""
+        """Lädt ein RL-Modell und testet es."""
         from src.reinforcement_learning.hybrid_agent import HybridAgent
         
         path, _ = QFileDialog.getOpenFileName(
@@ -589,7 +589,7 @@ class MainWindow(QMainWindow):
             )
     
     def _handle_visualization(self, agent, episode, difficulty, width, height):
-        """Handle visualization request from training thread (runs in GUI thread)."""
+        """Behandelt Visualisierungsanfragen vom Training-Thread (läuft im GUI-Thread)."""
         self.rl_agent = agent
         self.rl_visualizer.set_agent(agent)
         
@@ -601,7 +601,7 @@ class MainWindow(QMainWindow):
             self.rl_visualizer.play_episode(agent, difficulty, delay_ms=100, width=width, height=height)
     
     def _on_rl_episode_finished(self, won: bool, reward: float, steps: int):
-        """Handle RL episode completion."""
+        """Behandelt den Abschluss einer RL-Episode."""
         result_text = "Gewonnen!" if won else "Verloren!"
         QMessageBox.information(
             self,

@@ -1,4 +1,4 @@
-"""Game board widget for Minesweeper GUI."""
+"""Spielfeld-Widget für Minesweeper GUI."""
 
 from PySide6.QtWidgets import QWidget, QGridLayout, QPushButton, QSizePolicy, QVBoxLayout, QHBoxLayout
 from PySide6.QtCore import Qt, Signal, QSize
@@ -7,7 +7,7 @@ from src.minesweeper.game import Game
 
 
 class CellButton(QPushButton):
-    """Custom button for a game cell."""
+    """Benutzerdefinierter Button für eine Spielzelle."""
     
     left_clicked = Signal(int, int)
     right_clicked = Signal(int, int)
@@ -15,7 +15,7 @@ class CellButton(QPushButton):
     hover_left = Signal(int, int)
     
     def __init__(self, row: int, col: int):
-        """Initialize cell button."""
+        """Initialisiert den Zell-Button."""
         super().__init__()
         self.row = row
         self.col = col
@@ -63,7 +63,7 @@ class CellButton(QPushButton):
 
 
 class GameBoard(QWidget):
-    """Widget for displaying and interacting with the game board."""
+    """Widget zur Anzeige und Interaktion mit dem Spielfeld."""
     
     game_won = Signal()
     game_lost = Signal()
