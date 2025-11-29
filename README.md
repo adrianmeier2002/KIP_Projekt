@@ -2,6 +2,10 @@
 
 Ein vollständiges Minesweeper-Spiel mit GUI (PySide6) und **Hybrid AI**: Constraint Solver kombiniert mit Deep Q-Network (DQN).
 
+Der Entwicklungsbericht sowie das Konzept befindet sich im Ordner `Projektorganisation`. Dort ist der gesamte Entwicklungsprozess, die Herausforderungen und Reflexionen zu diesem Projekt dokumentiert.
+
+Die weiteren wichtigen Dokumente sind dieses README.md. Sowie der Code selbst, welcher hauptsächlich im `src/`-Ordner liegt.
+
 ## 🎯 Projektübersicht
 
 Dieses Projekt implementiert:
